@@ -10,7 +10,7 @@ import pickle
 
 # 2. Page Configuration
 st.set_page_config(page_title="German Credit Predictor", layout="centered")
-st.title("German Credit Risk Predictor")
+st.title("German Credit Risk Predictor demo")
 st.markdown("### Predict if a customer is **Good** or **Bad** credit risk")
 
 # 3. Load the model
