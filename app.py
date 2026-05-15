@@ -3,7 +3,7 @@ import pandas as pd
 import pickle
 
 st.set_page_config(page_title="German Credit Predictor", layout="centered")
-st.title("German Credit Risk Predictor////")
+st.title("German Credit Risk Predictor")
 st.markdown("### Predict if a customer is **Good** or **Bad** credit risk")
 
 # Load the model
