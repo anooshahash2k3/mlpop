@@ -1,32 +1,42 @@
+import sklearn.impute
+# 1. THE MONKEY PATCH (Must be at the very top)
+# This fixes the 'SimpleImputer' object has no attribute '_fill_dtype' error
+if not hasattr(sklearn.impute.SimpleImputer, '_fill_dtype'):
+    setattr(sklearn.impute.SimpleImputer, '_fill_dtype', float)
+
 import streamlit as st
 import pandas as pd
 import pickle
 
+# 2. Page Configuration
 st.set_page_config(page_title="German Credit Predictor", layout="centered")
 st.title("German Credit Risk Predictor")
 st.markdown("### Predict if a customer is **Good** or **Bad** credit risk")
 
-# Load the model
+# 3. Load the model
 @st.cache_resource
 def load_model():
+    # Ensure best_model.pkl is in your GitHub main folder
     with open("best_model.pkl", "rb") as f:
         model_info = pickle.load(f)
-    return model_info["model"], model_info.get("classes")
+    # Handling cases where pickle might be just the model or a dict
+    if isinstance(model_info, dict):
+        return model_info["model"], model_info.get("classes")
+    else:
+        return model_info, None
 
 model, classes = load_model()
 
-# Sidebar for User Input
+# 4. Sidebar for User Input
 st.sidebar.header("Enter Customer Details")
 
 def user_input_features():
-    # 1. UI Widgets
     age = st.sidebar.slider("Age", 18, 75, 30)
     sex = st.sidebar.selectbox("Sex", ["male", "female"])
     job = st.sidebar.selectbox("Job Level", [0, 1, 2, 3], 
                                format_func=lambda x: ["Unemployed", "Unskilled", "Skilled", "Highly Skilled"][x])
     housing = st.sidebar.selectbox("Housing", ["own", "rent", "free"])
     
-    # Mapping categorical text to the numbers to solve the 'string to float' error
     saving_map = {"little": 1, "moderate": 2, "quite rich": 3, "rich": 4}
     checking_map = {"little": 1, "moderate": 2, "rich": 3}
     housing_map = {"own": 1, "rent": 2, "free": 3}
@@ -36,11 +46,9 @@ def user_input_features():
     checking_account = st.sidebar.selectbox("Checking Account", list(checking_map.keys()))
     credit_amount = st.sidebar.number_input("Credit Amount (€)", min_value=100, max_value=20000, value=1000)
     duration = st.sidebar.slider("Duration (months)", 1, 72, 12)
-    purpose = st.sidebar.selectbox("Purpose", 
-        ['car', 'radio/TV', 'furniture/equipment', 'business', 'education', 
-         'repairs', 'domestic appliances', 'vacation/others'])
 
-    # 2. Final Dictionary - Using numbers to satisfy the model's math requirements
+    # 5. Data dictionary
+    # IMPORTANT: These names must match your model's training columns exactly
     data = {
         'Age (years)': age,
         'Sex & Marital Status': sex_map[sex],
@@ -50,9 +58,7 @@ def user_input_features():
         'Account Balance': checking_map[checking_account],
         'Credit Amount': credit_amount,
         'Duration of Credit (month)': duration,
-        'Purpose': 1, # Numeric placeholder for the purpose column
-        
-        # Mandatory missing columns with numeric default values
+        'Purpose': 1, 
         'Concurrent Credits': 1,
         'Guarantors': 1,
         'No of Credits at this Bank': 1,
@@ -70,21 +76,19 @@ def user_input_features():
 
 input_df = user_input_features()
 
-# Prediction Logic
+# 6. Prediction Logic
 if st.button("🔍 Predict Credit Risk", type="primary"):
     with st.spinner("Analyzing profile..."):
         try:
-            # Predict
             prediction = model.predict(input_df)[0]
             probability = model.predict_proba(input_df)[0]
 
-            # Labeling logic
             if classes is not None:
                 result = classes[prediction]
             else:
+                # Assuming 1 is Good and 0 is Bad based on typical dataset
                 result = "Good" if prediction == 1 else "Bad"
 
-            # Display Results
             st.success(f"**Prediction: {str(result).upper()} Credit Risk**")
 
             col1, col2 = st.columns(2)
@@ -100,10 +104,12 @@ if st.button("🔍 Predict Credit Risk", type="primary"):
                 
         except Exception as e:
             st.error(f"Prediction Error: {e}")
+            st.info("Check if your column names match the model training names.")
 
-# Model Info Section
+# 7. Model Status
 try:
-    model_type = type(model.named_steps['model']).__name__
-    st.info(f"Model used: **{model_type}**")
+    model_name = type(model).__name__
+    st.divider()
+    st.caption(f"Engine: {model_name} | Status: Online")
 except:
-    st.info("Model loaded successfully.")
+    pass
