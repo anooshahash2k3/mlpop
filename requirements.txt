@@ -1,4 +1,3 @@
 streamlit
 pandas
-scikit-learn
-# Add any other libraries you used in main.ipynb, e.g., xgboost or mysql-connector-python
+scikit-learn==1.2.2
